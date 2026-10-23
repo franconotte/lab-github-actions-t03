@@ -7,6 +7,9 @@ on:
     branches: [staging, main]
   workflow_dispatch:
 
+env:
+  AWS_REGION: us-east-1
+
 jobs:
   build-and-test:
     name: Build & Test
@@ -37,18 +40,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy (simulado)
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to S3
         env:
           BUCKET: ${{ secrets.S3_BUCKET }}
         run: |
-          DESTINO="${BUCKET:-bucket-no-configurado}"
-          echo "Ambiente: dev"
-          echo "Destino: s3://$DESTINO"
-          echo "Commit: ${{ github.sha }}"
+          aws s3 sync . "s3://$BUCKET" --delete \
+            --exclude ".git/*" --exclude ".github/*" \
+            --exclude "Dockerfile" --exclude "README.md"
+          URL="http://$BUCKET.s3-website-$AWS_REGION.amazonaws.com"
           echo "### Deploy a dev" >> $GITHUB_STEP_SUMMARY
-          echo "- Destino: \`s3://$DESTINO\`" >> $GITHUB_STEP_SUMMARY
+          echo "- URL: $URL" >> $GITHUB_STEP_SUMMARY
           echo "- Commit: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Modo: simulado (sin credenciales de AWS)" >> $GITHUB_STEP_SUMMARY
 
   deploy-staging:
     name: Deploy -> staging
@@ -59,15 +69,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy (simulado)
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to S3
         env:
           BUCKET: ${{ secrets.S3_BUCKET }}
         run: |
-          DESTINO="${BUCKET:-bucket-no-configurado}"
-          echo "Ambiente: staging"
-          echo "Destino: s3://$DESTINO"
+          aws s3 sync . "s3://$BUCKET" --delete \
+            --exclude ".git/*" --exclude ".github/*" \
+            --exclude "Dockerfile" --exclude "README.md"
+          URL="http://$BUCKET.s3-website-$AWS_REGION.amazonaws.com"
           echo "### Deploy a staging" >> $GITHUB_STEP_SUMMARY
-          echo "- Destino: \`s3://$DESTINO\`" >> $GITHUB_STEP_SUMMARY
+          echo "- URL: $URL" >> $GITHUB_STEP_SUMMARY
           echo "- Commit: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
 
   deploy-production:
@@ -79,14 +98,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy (simulado)
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to S3
         env:
           BUCKET: ${{ secrets.S3_BUCKET }}
         run: |
-          DESTINO="${BUCKET:-bucket-no-configurado}"
-          echo "Ambiente: production"
-          echo "Destino: s3://$DESTINO"
+          aws s3 sync . "s3://$BUCKET" --delete \
+            --exclude ".git/*" --exclude ".github/*" \
+            --exclude "Dockerfile" --exclude "README.md"
+          URL="http://$BUCKET.s3-website-$AWS_REGION.amazonaws.com"
           echo "### Deploy a production" >> $GITHUB_STEP_SUMMARY
-          echo "- Destino: \`s3://$DESTINO\`" >> $GITHUB_STEP_SUMMARY
+          echo "- URL: $URL" >> $GITHUB_STEP_SUMMARY
           echo "- Commit: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Aprobado manualmente antes de ejecutarse" >> $GITHUB_STEP_SUMMARY
